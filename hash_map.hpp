@@ -11,7 +11,7 @@ struct val{
 };
 
 template <typename K, typename T>
-class hash_map : public allocator<std::vector<val<K, T>>>{
+class hash_map : public std::allocator<std::vector<val<K, T>>>{
     using data_type = std::vector<val<K, T>>;
 
     data_type* data;
@@ -23,6 +23,7 @@ public:
     hash_map();                          // constructor
     ~hash_map();                         // destructor
     void insert(const K& key, const T& val);  // setter
+    void erase(const K& key);
     T    at(const K& key);             // getter
     T&   operator[](const K& key);              // subscript operator
     size_t size() const { return s; }
@@ -47,7 +48,7 @@ hash_map<K, T>::~hash_map() {
 
 template<typename K, typename T>
 void hash_map<K, T>::insert(const K& key, const T& val) {
-    size_t h = hash<K>{}(key) & mask;
+    size_t h = std::hash<K>{}(key) & mask;
     for (auto& v : data[h]) {
         if (v.key == key) {
             v.data = val;
@@ -59,8 +60,20 @@ void hash_map<K, T>::insert(const K& key, const T& val) {
 }
 
 template<typename K, typename T>
+void hash_map<K, T>::erase(const K& key) {
+    size_t h = std::hash<K>{}(key) & mask;
+    for (int i = 0; i < data[h].size(); i++) {
+        if (data[h][i].key == key) {
+            data[h].erase(data[h].begin() + i);
+            s--;
+            return;
+        }
+    }
+}
+
+template<typename K, typename T>
 T hash_map<K, T>::at(const K& key) {
-    size_t h = hash<K>{}(key) & mask;
+    size_t h = std::hash<K>{}(key) & mask;
     for (const auto& v : data[h]) {
         if (v.key == key) return v.data;
     }
@@ -69,7 +82,7 @@ T hash_map<K, T>::at(const K& key) {
 }
 template<typename K, typename T>
 T& hash_map<K, T>::operator[](const K& key) {
-    size_t h = hash<K>{}(key) & mask;
+    size_t h = std::hash<K>{}(key) & mask;
     for (auto& v : data[h]) {
         if (v.key == key) return v.data;
     }
@@ -90,7 +103,7 @@ void hash_map<K, T>::resize() {
     }
     for (int i = 0; i < n; i++) {
         for (const auto& val : data[i]) {
-            size_t h = hash<K>{}(val.key) & mask;
+            size_t h = std::hash<K>{}(val.key) & mask;
             temp[h].emplace_back(val.key, val.data);
         }
         data[i].~data_type();
