@@ -3,7 +3,6 @@
 #include <stdexcept>
 #include <vector>
 
-using namespace std;
 template <typename K, typename T>
 struct val{
     K key;
@@ -12,13 +11,13 @@ struct val{
 };
 
 template <typename K, typename T>
-class hash_map : public allocator<vector<val<K, T>>>{
-    using data_type = vector<val<K, T>>;
+class hash_map : public allocator<std::vector<val<K, T>>>{
+    using data_type = std::vector<val<K, T>>;
 
     data_type* data;
     size_t capacity{128};                // default size, resizes at 75% full for amortized benefits etc, power of two to make use of bitmask
     size_t mask{capacity - 1};
-    size_t size{0};
+    size_t s{0};
     void resize();
 public: 
     hash_map();                          // constructor
@@ -26,6 +25,8 @@ public:
     void insert(const K& key, const T& val);  // setter
     T    at(const K& key);             // getter
     T&   operator[](const K& key);              // subscript operator
+    size_t size() const { return s; }
+    size_t cap() const { return capacity; }
 };
 
 template<typename K, typename T>
@@ -53,7 +54,7 @@ void hash_map<K, T>::insert(const K& key, const T& val) {
             return;
         }
     }
-    if (++size > capacity / 4 * 3) resize();
+    if (++s > capacity / 4 * 3) resize();
     data[h].emplace_back(key, val);
 }
 
@@ -73,6 +74,7 @@ T& hash_map<K, T>::operator[](const K& key) {
         if (v.key == key) return v.data;
     }
     T d{};
+    if (++s > capacity / 4 * 3) resize();
     data[h].emplace_back(key, d);
     return data[h].back().data;
 }
