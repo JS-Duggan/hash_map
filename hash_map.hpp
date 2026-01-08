@@ -24,8 +24,9 @@ public:
     ~hash_map();                         // destructor
     void insert(const K& key, const T& val);  // setter
     void erase(const K& key);
-    T    at(const K& key);             // getter
-    T&   operator[](const K& key);              // subscript operator
+    const T& at(const K& key);             // getter
+    bool contains(const K& key);
+    T& operator[](const K& key);              // subscript operator
     size_t size() const { return s; }
     size_t cap() const { return capacity; }
 };
@@ -56,7 +57,7 @@ void hash_map<K, T>::insert(const K& key, const T& val) {
 template<typename K, typename T>
 void hash_map<K, T>::erase(const K& key) {
     size_t h = std::hash<K>{}(key) & mask;
-    for (int i = 0; i < data[h].size(); i++) {
+    for (size_t i = 0; i < data[h].size(); i++) {
         if (data[h][i].key == key) {
             data[h].erase(data[h].begin() + i);
             s--;
@@ -66,13 +67,23 @@ void hash_map<K, T>::erase(const K& key) {
 }
 
 template<typename K, typename T>
-T hash_map<K, T>::at(const K& key) {
+const T& hash_map<K, T>::at(const K& key) {
     size_t h = std::hash<K>{}(key) & mask;
     for (const auto& v : data[h]) {
         if (v.key == key) return v.data;
     }
     throw std::out_of_range("key not found");
 }
+
+template<typename K, typename T>
+bool hash_map<K, T>::contains(const K& key) {
+    size_t h = std::hash<K>{}(key) & mask;
+    for (const auto& v : data[h]) {
+        if (v.key == key) return true;
+    }
+    return false;
+}
+
 
 template<typename K, typename T>
 T& hash_map<K, T>::operator[](const K& key) {
@@ -88,11 +99,11 @@ T& hash_map<K, T>::operator[](const K& key) {
 
 template<typename K, typename T>
 void hash_map<K, T>::resize() {
-    int n = capacity;
+    size_t n = capacity;
     capacity *= 2;
     mask = capacity - 1;
     data_type* temp = new data_type[capacity];
-    for (int i = 0; i < n; i++) {
+    for (size_t i = 0; i < n; i++) {
         for (const auto& val : data[i]) {
             size_t h = std::hash<K>{}(val.key) & mask;
             temp[h].emplace_back(val.key, val.data);
