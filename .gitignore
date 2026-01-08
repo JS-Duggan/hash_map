@@ -1,2 +1,4 @@
 *
 !hash_map*.hpp
+!benchmark.cpp
+!benchmark.md

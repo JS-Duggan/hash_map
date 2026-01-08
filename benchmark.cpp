@@ -4,7 +4,7 @@
 #include <unordered_map>
 #include "hash_map.hpp"
 
-constexpr size_t N = 100000000;
+constexpr size_t N = 10000000;
 
 void print_result(const std::string& name, double ns, size_t ops) {
     double op_per_sec = ops / (ns / 1e9);
@@ -146,6 +146,121 @@ int main() {
         auto end = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
         print_result("hash_map erase", duration.count(), N);
+    }
+
+    std::cout << "\n========== STRING KEY BENCHMARKS ==========\n\n";
+
+    // Pre-generate string keys to avoid measuring string creation time
+    std::vector<std::string> keys(N);
+    for (size_t i = 0; i < N; i++) {
+        keys[i] = std::to_string(i);
+    }
+
+    // ===== STRING INSERT =====
+    {
+        std::unordered_map<std::string, size_t> um;
+        auto start = std::chrono::high_resolution_clock::now();
+        for (size_t i = 0; i < N; i++) {
+            um.insert({keys[i], i});
+        }
+        auto end = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
+        print_result("unordered_map<string> insert", duration.count(), N);
+    }
+    {
+        hash_map<std::string, size_t> hm;
+        auto start = std::chrono::high_resolution_clock::now();
+        for (size_t i = 0; i < N; i++) {
+            hm.insert(keys[i], i);
+        }
+        auto end = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
+        print_result("hash_map<string> insert", duration.count(), N);
+    }
+    std::cout << "\n";
+
+    // ===== STRING CONTAINS =====
+    {
+        std::unordered_map<std::string, size_t> um;
+        for (size_t i = 0; i < N; i++) um[keys[i]] = i;
+
+        auto start = std::chrono::high_resolution_clock::now();
+        for (size_t i = 0; i < N; i++) {
+            volatile bool found = um.count(keys[i]) > 0;
+            (void)found;
+        }
+        auto end = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
+        print_result("unordered_map<string> contains", duration.count(), N);
+    }
+    {
+        hash_map<std::string, size_t> hm;
+        for (size_t i = 0; i < N; i++) hm[keys[i]] = i;
+
+        auto start = std::chrono::high_resolution_clock::now();
+        for (size_t i = 0; i < N; i++) {
+            volatile bool found = hm.contains(keys[i]);
+            (void)found;
+        }
+        auto end = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
+        print_result("hash_map<string> contains", duration.count(), N);
+    }
+    std::cout << "\n";
+
+    // ===== STRING AT =====
+    {
+        std::unordered_map<std::string, size_t> um;
+        for (size_t i = 0; i < N; i++) um[keys[i]] = i;
+
+        auto start = std::chrono::high_resolution_clock::now();
+        for (size_t i = 0; i < N; i++) {
+            volatile size_t val = um.at(keys[i]);
+            (void)val;
+        }
+        auto end = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
+        print_result("unordered_map<string> at", duration.count(), N);
+    }
+    {
+        hash_map<std::string, size_t> hm;
+        for (size_t i = 0; i < N; i++) hm[keys[i]] = i;
+
+        auto start = std::chrono::high_resolution_clock::now();
+        for (size_t i = 0; i < N; i++) {
+            volatile size_t val = hm.at(keys[i]);
+            (void)val;
+        }
+        auto end = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
+        print_result("hash_map<string> at", duration.count(), N);
+    }
+    std::cout << "\n";
+
+    // ===== STRING ERASE =====
+    {
+        std::unordered_map<std::string, size_t> um;
+        for (size_t i = 0; i < N; i++) um[keys[i]] = i;
+
+        auto start = std::chrono::high_resolution_clock::now();
+        for (size_t i = 0; i < N; i++) {
+            um.erase(keys[i]);
+        }
+        auto end = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
+        print_result("unordered_map<string> erase", duration.count(), N);
+    }
+    {
+        hash_map<std::string, size_t> hm;
+        for (size_t i = 0; i < N; i++) hm[keys[i]] = i;
+
+        auto start = std::chrono::high_resolution_clock::now();
+        for (size_t i = 0; i < N; i++) {
+            hm.erase(keys[i]);
+        }
+        auto end = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
+        print_result("hash_map<string> erase", duration.count(), N);
     }
 
     return 0;
