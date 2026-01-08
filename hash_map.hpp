@@ -4,15 +4,15 @@
 #include <vector>
 
 template <typename K, typename T>
-struct val{
+struct slot{
     K key;
     T data;
-    val(K k, T d) : key{k}, data{d} {};
+    slot(K k, T d) : key{k}, data{d} {};
 };
 
 template <typename K, typename T>
-class hash_map : public std::allocator<std::vector<val<K, T>>>{
-    using data_type = std::vector<val<K, T>>;
+class hash_map {
+    using data_type = std::vector<slot<K, T>>;
 
     data_type* data;
     size_t capacity{128};                // default size, resizes at 75% full for amortized benefits etc, power of two to make use of bitmask
@@ -32,18 +32,12 @@ public:
 
 template<typename K, typename T>
 hash_map<K, T>::hash_map() {
-    data = hash_map::allocate(capacity);
-    for (int i = 0; i < capacity; i++) {
-        new (&data[i]) data_type();
-    }
+    data = new data_type[capacity];
 }
 
 template<typename K, typename T>
 hash_map<K, T>::~hash_map() {
-    for (int i = 0; i < capacity; i++) {
-        data[i].~data_type();
-    }
-    hash_map::deallocate(data, capacity);
+    delete[] data;
 }
 
 template<typename K, typename T>
@@ -55,8 +49,8 @@ void hash_map<K, T>::insert(const K& key, const T& val) {
             return;
         }
     }
-    if (++s > capacity / 4 * 3) resize();
     data[h].emplace_back(key, val);
+    if (++s > capacity / 4 * 3) resize();
 }
 
 template<typename K, typename T>
@@ -77,9 +71,9 @@ T hash_map<K, T>::at(const K& key) {
     for (const auto& v : data[h]) {
         if (v.key == key) return v.data;
     }
-    T d{};
-    return d;
+    throw std::out_of_range("key not found");
 }
+
 template<typename K, typename T>
 T& hash_map<K, T>::operator[](const K& key) {
     size_t h = std::hash<K>{}(key) & mask;
@@ -87,8 +81,8 @@ T& hash_map<K, T>::operator[](const K& key) {
         if (v.key == key) return v.data;
     }
     T d{};
-    if (++s > capacity / 4 * 3) resize();
     data[h].emplace_back(key, d);
+    if (++s > capacity / 4 * 3) resize();
     return data[h].back().data;
 }
 
@@ -97,17 +91,13 @@ void hash_map<K, T>::resize() {
     int n = capacity;
     capacity *= 2;
     mask = capacity - 1;
-    data_type* temp = hash_map::allocate(capacity);
-    for (int i = 0; i < capacity; i++) {
-        new (&temp[i]) data_type();
-    }
+    data_type* temp = new data_type[capacity];
     for (int i = 0; i < n; i++) {
         for (const auto& val : data[i]) {
             size_t h = std::hash<K>{}(val.key) & mask;
             temp[h].emplace_back(val.key, val.data);
         }
-        data[i].~data_type();
     }
-    hash_map::deallocate(data, n);
+    delete[] data;
     data = temp;
 }

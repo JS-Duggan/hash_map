@@ -9,5 +9,4 @@ int main() {
     cout << mp[6] <<  "size: " << mp.size() << endl;
     mp.erase(6);
     cout <<  "size: " << mp.size() << endl;
-
 }
