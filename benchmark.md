@@ -91,3 +91,65 @@ hash_map erase                128.832125 ms       776.203917 Mop/s
 unordered_map<string> insert  22.997923 s         4.348219 Mop/s
 hash_map<string> insert       71.971958 s         1.389430 Mop/s
 ```
+
+# v4
+
+```
+N = 10M
+Operation                     Time                Throughput
+----------------------------------------------------------------------
+unordered_map insert          1.659672 s          6.025286 Mop/s
+hash_map insert               674.187500 ms       14.832669 Mop/s
+
+unordered_map contains        330.700916 ms       30.238803 Mop/s
+hash_map contains             210.409375 ms       47.526399 Mop/s
+
+unordered_map at              318.021250 ms       31.444440 Mop/s
+hash_map at                   146.911708 ms       68.068094 Mop/s
+
+unordered_map erase           1.779606 s          5.619220 Mop/s
+hash_map erase                179.716333 ms       55.643245 Mop/s
+
+========== STRING KEY BENCHMARKS ==========
+
+unordered_map<string> insert  2.221157 s          4.502159 Mop/s
+hash_map<string> insert       1.034762 s          9.664055 Mop/s
+
+unordered_map<string> contains775.430083 ms       12.896069 Mop/s
+hash_map<string> contains     387.937208 ms       25.777368 Mop/s
+
+unordered_map<string> at      798.094625 ms       12.529843 Mop/s
+hash_map<string> at           409.162500 ms       24.440167 Mop/s
+
+unordered_map<string> erase   1.768466 s          5.654617 Mop/s
+hash_map<string> erase        457.653375 ms       21.850598 Mop/s
+
+N = 100M
+Operation                     Time                Throughput
+----------------------------------------------------------------------
+unordered_map insert          17.425751 s         5.738634 Mop/s
+hash_map insert               8.508454 s          11.753017 Mop/s
+
+unordered_map contains        3.590102 s          27.854358 Mop/s
+hash_map contains             2.100415 s          47.609649 Mop/s
+
+unordered_map at              3.590789 s          27.849034 Mop/s
+hash_map at                   1.983101 s          50.426085 Mop/s
+
+unordered_map erase           20.230912 s         4.942931 Mop/s
+hash_map erase                2.248018 s          44.483636 Mop/s
+
+========== STRING KEY BENCHMARKS ==========
+
+unordered_map<string> insert  25.058368 s         3.990683 Mop/s
+hash_map<string> insert       16.585449 s         6.029382 Mop/s
+
+unordered_map<string> contains8.440034 s          11.848293 Mop/s
+hash_map<string> contains     4.913465 s          20.352235 Mop/s
+
+unordered_map<string> at      8.511603 s          11.748669 Mop/s
+hash_map<string> at           5.170944 s          19.338827 Mop/s
+
+unordered_map<string> erase   20.061128 s         4.984764 Mop/s
+hash_map<string> erase        5.390873 s          18.549870 Mop/s
+```
