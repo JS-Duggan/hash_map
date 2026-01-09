@@ -112,7 +112,7 @@ size_t hash_map<K, T>::hash_key(const K& key) requires Container<K> {
 
 template<typename K, typename T>
 size_t hash_map<K, T>::hash_key(const K& key) requires Copyable<K> {
-    rapidhash(&key, sizeof(T));
+    return rapidhash(&key, sizeof(K));
 }
 
 // ARITHMETIC
@@ -147,7 +147,7 @@ template<typename K, typename T>
 bool hash_map<K, T>::contains(const K& key) requires Arithmetic<K> {
     size_t hash = hash_key(key);
     size_t h = hash & mask;
-    while (data[h].state != state::Empty && data[h].key == key) h = (h + 1) & mask;
+    while (data[h].state != state::Empty && data[h].key != key) h = (h + 1) & mask;
     return !(data[h].state == state::Empty || data[h].state == state::Tombstone);
 }
 
