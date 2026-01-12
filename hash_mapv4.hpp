@@ -57,8 +57,8 @@ class hash_map {
 
     data_type* data;
     size_t capacity{128};                // default size, resizes at 75% full for amortized benefits etc, power of two to make use of bitmask
-    size_t mask{capacity - 1};
-    size_t s{0};
+    size_t mask_{capacity - 1};
+    size_t size_{0};
     size_t hash_key(const K& key) requires Arithmetic<K>; // define hash func for specialization
     size_t hash_key(const K& key) requires Container<K>;
     size_t hash_key(const K& key) requires Copyable<K>;
@@ -82,7 +82,7 @@ public:
     bool contains(const K& key) requires (!Arithmetic<K>);
     T& operator[](const K& key) requires (!Arithmetic<K>);              // subscript operator
 
-    size_t size() const { return s; }
+    size_t size() const { return size_; }
     size_t cap() const { return capacity; }
 };
 
@@ -119,26 +119,26 @@ size_t hash_map<K, T>::hash_key(const K& key) requires Copyable<K> {
 
 template<typename K, typename T>
 void hash_map<K, T>::insert(const K& key, const T& val) requires Arithmetic<K> {
-    size_t h = hash_key(key) & mask;
-    while (data[h].state != state::Empty && data[h].key != key) h = (h + 1) & mask;
+    size_t h = hash_key(key) & mask_;
+    while (data[h].state != state::Empty && data[h].key != key) h = (h + 1) & mask_;
     bool inserted = (data[h].state != state::Filled);
     data[h] = {key, val};
-    if (inserted && ++s > capacity * 3 / 5) resize(); // I have gone with smaller load percentage for open addressing
+    if (inserted && ++size_ > capacity * 3 / 5) resize(); // I have gone with smaller load percentage for open addressing
 }
 
 template<typename K, typename T>
 void hash_map<K, T>::erase(const K& key) requires Arithmetic<K> {
-    size_t h = hash_key(key) & mask;
-    while (data[h].state != state::Empty && data[h].key != key) h = (h + 1) & mask;
+    size_t h = hash_key(key) & mask_;
+    while (data[h].state != state::Empty && data[h].key != key) h = (h + 1) & mask_;
     if (data[h].state == state::Empty || data[h].state == state::Tombstone) return;
     else data[h].state = state::Tombstone;
-    s -= 1;
+    size_ -= 1;
 }
 
 template<typename K, typename T>
 const T& hash_map<K, T>::at(const K& key) requires Arithmetic<K> {
-    size_t h = hash_key(key) & mask;
-    while (data[h].state != state::Empty && data[h].key != key) h = (h + 1) & mask;
+    size_t h = hash_key(key) & mask_;
+    while (data[h].state != state::Empty && data[h].key != key) h = (h + 1) & mask_;
     if (data[h].state == state::Empty || data[h].state == state::Tombstone) throw std::out_of_range("key not found");
     return data[h].data;
 }
@@ -146,8 +146,8 @@ const T& hash_map<K, T>::at(const K& key) requires Arithmetic<K> {
 template<typename K, typename T>
 bool hash_map<K, T>::contains(const K& key) requires Arithmetic<K> {
     size_t hash = hash_key(key);
-    size_t h = hash & mask;
-    while (data[h].state != state::Empty && data[h].key != key) h = (h + 1) & mask;
+    size_t h = hash & mask_;
+    while (data[h].state != state::Empty && data[h].key != key) h = (h + 1) & mask_;
     return !(data[h].state == state::Empty || data[h].state == state::Tombstone);
 }
 
@@ -155,13 +155,13 @@ bool hash_map<K, T>::contains(const K& key) requires Arithmetic<K> {
 template<typename K, typename T>
 T& hash_map<K, T>::operator[](const K& key) requires Arithmetic<K> {
     size_t hash = hash_key(key);
-    size_t h = hash & mask;
-    while (data[h].state != state::Empty && data[h].key != key) h = (h + 1) & mask;
+    size_t h = hash & mask_;
+    while (data[h].state != state::Empty && data[h].key != key) h = (h + 1) & mask_;
     if (data[h].state != state::Filled) {
-        if (++s > capacity * 3 / 5) {
+        if (++size_ > capacity * 3 / 5) {
             resize();
-            h = hash & mask;
-            while (data[h].state == state::Filled) h = (h + 1) & mask;
+            h = hash & mask_;
+            while (data[h].state == state::Filled) h = (h + 1) & mask_;
         }
         data[h] = {key, {}}; // if tombstone or empty, make new
     }
@@ -172,13 +172,13 @@ template<typename K, typename T>
 void hash_map<K, T>::resize() requires Arithmetic<K> {
     size_t n = capacity;
     capacity *= 2;
-    mask = capacity - 1;
+    mask_ = capacity - 1;
     data_type* temp = new data_type[capacity]{};
     for (size_t idx = 0; idx < n; idx++) {
         if (data[idx].state == state::Filled) {
-            size_t h = hash_key(data[idx].key) & mask;
+            size_t h = hash_key(data[idx].key) & mask_;
             while (temp[h].state == state::Filled) {
-                h = (h + 1) & mask;
+                h = (h + 1) & mask_;
             }
             temp[h] = std::move(data[idx]);
         }
@@ -191,28 +191,28 @@ void hash_map<K, T>::resize() requires Arithmetic<K> {
 template<typename K, typename T>
 void hash_map<K, T>::insert(const K& key, const T& val) requires (!Arithmetic<K>) {
     size_t hash = hash_key(key);
-    size_t h = hash & mask;
-    while (data[h].state != state::Empty && !(data[h].hash == hash && data[h].key == key)) h = (h + 1) & mask;
+    size_t h = hash & mask_;
+    while (data[h].state != state::Empty && !(data[h].hash == hash && data[h].key == key)) h = (h + 1) & mask_;
     bool inserted = (data[h].state != state::Filled);
     data[h] = {key, val, hash};
-    if (inserted && ++s > capacity * 3 / 5) resize(); // I have gone with smaller load percentage for open addressing
+    if (inserted && ++size_ > capacity * 3 / 5) resize(); // I have gone with smaller load percentage for open addressing
 }
 
 template<typename K, typename T>
 void hash_map<K, T>::erase(const K& key) requires (!Arithmetic<K>) {
     size_t hash = hash_key(key);
-    size_t h = hash & mask;
-    while (data[h].state != state::Empty && !(data[h].hash == hash && data[h].key == key)) h = (h + 1) & mask;
+    size_t h = hash & mask_;
+    while (data[h].state != state::Empty && !(data[h].hash == hash && data[h].key == key)) h = (h + 1) & mask_;
     if (data[h].state == state::Empty || data[h].state == state::Tombstone) return;
     else data[h].state = state::Tombstone;
-    s -= 1;
+    size_ -= 1;
 }
 
 template<typename K, typename T>
 const T& hash_map<K, T>::at(const K& key) requires (!Arithmetic<K>) {
     size_t hash = hash_key(key);
-    size_t h = hash & mask;
-    while (data[h].state != state::Empty && !(data[h].hash == hash && data[h].key == key)) h = (h + 1) & mask;
+    size_t h = hash & mask_;
+    while (data[h].state != state::Empty && !(data[h].hash == hash && data[h].key == key)) h = (h + 1) & mask_;
     if (data[h].state == state::Empty || data[h].state == state::Tombstone) throw std::out_of_range("key not found");
     return data[h].data;
 }
@@ -220,8 +220,8 @@ const T& hash_map<K, T>::at(const K& key) requires (!Arithmetic<K>) {
 template<typename K, typename T>
 bool hash_map<K, T>::contains(const K& key) requires (!Arithmetic<K>) {
     size_t hash = hash_key(key);
-    size_t h = hash & mask;
-    while (data[h].state != state::Empty && !(data[h].hash == hash && data[h].key == key)) h = (h + 1) & mask;
+    size_t h = hash & mask_;
+    while (data[h].state != state::Empty && !(data[h].hash == hash && data[h].key == key)) h = (h + 1) & mask_;
     return !(data[h].state == state::Empty || data[h].state == state::Tombstone);
 }
 
@@ -229,13 +229,13 @@ bool hash_map<K, T>::contains(const K& key) requires (!Arithmetic<K>) {
 template<typename K, typename T>
 T& hash_map<K, T>::operator[](const K& key) requires (!Arithmetic<K>) {
     size_t hash = hash_key(key);
-    size_t h = hash & mask;
-    while (data[h].state != state::Empty && !(data[h].hash == hash && data[h].key == key)) h = (h + 1) & mask;
+    size_t h = hash & mask_;
+    while (data[h].state != state::Empty && !(data[h].hash == hash && data[h].key == key)) h = (h + 1) & mask_;
     if (data[h].state != state::Filled) {
-        if (++s > capacity * 3 / 5) {
+        if (++size_ > capacity * 3 / 5) {
             resize();
-            h = hash & mask;
-            while (data[h].state == state::Filled) h = (h + 1) & mask;
+            h = hash & mask_;
+            while (data[h].state == state::Filled) h = (h + 1) & mask_;
         }
         data[h] = {key, {}, hash}; // if tombstone or empty, make new
     }
@@ -246,12 +246,12 @@ template<typename K, typename T>
 void hash_map<K, T>::resize() requires (!Arithmetic<K>){
     size_t n = capacity;
     capacity *= 2;
-    mask = capacity - 1;
+    mask_ = capacity - 1;
     data_type* temp = new data_type[capacity]{};
     for (size_t idx = 0; idx < n; idx++) {
         if (data[idx].state == state::Filled) {
-            size_t h = data[idx].hash & mask;
-            while (temp[h].state == state::Filled) h = (h + 1) & mask;
+            size_t h = data[idx].hash & mask_;
+            while (temp[h].state == state::Filled) h = (h + 1) & mask_;
             temp[h] = std::move(data[idx]);
         }
     }

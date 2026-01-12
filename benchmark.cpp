@@ -5,9 +5,9 @@
 #include <vector>
 #include <random>
 #include <algorithm>
-#include "hash_mapv4.hpp"
+#include "hash_mapv5.cpp"
 
-constexpr size_t N = 10000000;
+constexpr size_t N = 100000000;
 
 void print_result(const std::string& name, double ns, size_t ops) {
     double op_per_sec = ops / (ns / 1e9);
@@ -129,7 +129,7 @@ int main() {
 
         auto start = std::chrono::high_resolution_clock::now();
         for (size_t k : lookup_keys) {
-            volatile size_t at = hm.at(k);
+            volatile auto at = hm.at(k);
             (void)at;
         }
         auto end = std::chrono::high_resolution_clock::now();
@@ -248,7 +248,7 @@ int main() {
 
         auto start = std::chrono::high_resolution_clock::now();
         for (size_t i = 0; i < N; i++) {
-            volatile size_t val = hm.at(string_keys[i]);
+            volatile auto val = hm.at(string_keys[i]);
             (void)val;
         }
         auto end = std::chrono::high_resolution_clock::now();
