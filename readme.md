@@ -21,8 +21,15 @@ I have also switched to using random values for benchmarking, which does technic
 
 This marks my final version, as I have now outperformed unordered_map in all benchmarks at N=100M, which was my goal to begin with. I understand that there are multiple ways to improve beyond what I have done, but I have acheived my original target of outperforming unordered_map.
 
-## v5
+## v5.1
 
 I lied before, I kept going. This time I am using control bytes for efficient searching / probing, in preparation for using SIMD instructions to that it will be actually fast and just a slightly worse version of the abseil flat hash map.
 
 The map actually performs worse than a regular linear probing map due to the computational overhead of individually checking each control byte
+
+
+## v5.2
+
+I have now implemente SMID instructions, that allow for simulatenous searching of a whole group at a time. 
+
+Now even faster again. and tying together all the concepts I have learnt so far, this is a very cool implementation of a hash map! Hopefully more to come
