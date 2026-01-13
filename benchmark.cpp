@@ -5,9 +5,9 @@
 #include <vector>
 #include <random>
 #include <algorithm>
-#include "hash_mapv5.cpp"
+#include "hash_mapv5.2.cpp"
 
-constexpr size_t N = 100000000;
+constexpr size_t N = 10000000;
 
 void print_result(const std::string& name, double ns, size_t ops) {
     double op_per_sec = ops / (ns / 1e9);

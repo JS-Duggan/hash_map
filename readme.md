@@ -23,4 +23,6 @@ This marks my final version, as I have now outperformed unordered_map in all ben
 
 ## v5
 
-I lied before, I kept going. This time I am using control bytes for efficient searching / probing, in preparation for using SIMD instructions to that it will be actually fast and just a slightly worse version of the abseil flat hash map
+I lied before, I kept going. This time I am using control bytes for efficient searching / probing, in preparation for using SIMD instructions to that it will be actually fast and just a slightly worse version of the abseil flat hash map.
+
+The map actually performs worse than a regular linear probing map due to the computational overhead of individually checking each control byte
