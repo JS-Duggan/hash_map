@@ -1,8 +1,2 @@
-*
-!hash_map.hpp
-!benchmark.cpp
-!benchmark.md
-!readme.md
-!rapidhash.h
-!hash_map.cpp
-!sse2neon.h
+test*
+*.out
