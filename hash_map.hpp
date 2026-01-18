@@ -1,115 +1,91 @@
-#pragma once
-#include <memory>
-#include <stdexcept>
-#include <vector>
+#include <cstddef>
+#include <cstdint>
+#include <type_traits>
+#include <utility>
 
-template <typename K, typename T>
-struct slot{
-    K key;
-    T data;
-    slot(K k, T d) : key{k}, data{d} {};
+enum ctrl : uint8_t
+{                     // use 1 byte int, 0 comparison faster
+    Empty = 0xFF,     // 0b11111111
+    Tombstone = 0xFE, // 0b11111110
+    Sentinel = 0x80   // 0b10000000
+                      // Filled = 0b0xxxxxxx
 };
 
-template <typename K, typename T>
-class hash_map {
-    using data_type = std::vector<slot<K, T>>;
+template <typename K>
+concept Container = requires(K key) {
+    key.data();
+    key.size();
+};
 
-    data_type* data;
-    size_t capacity{128};                // default size, resizes at 75% full for amortized benefits etc, power of two to make use of bitmask
-    size_t mask{capacity - 1};
-    size_t s{0};
+template <typename K>
+concept Arithmetic = std::is_arithmetic_v<K>;
+
+template <typename K>
+concept Copyable = std::is_trivially_copyable_v<K> && !Arithmetic<K>;
+
+template <typename K, typename V> struct slot;
+
+// arithmetic types don't store hash
+template <typename K, typename V>
+    requires Arithmetic<K>
+struct slot<const K, V>
+{
+    std::pair<const K, V> data;
+    slot(const K &key, const V &val) : data{key, val} {}
+    slot() : data{} {}
+};
+
+// non arithmetic types do store hash
+template <typename K, typename V>
+    requires(!Arithmetic<K>)
+struct slot<K, V>
+{
+    std::pair<K, V> data;
+    size_t hash;
+    slot(const K &key, const V &val, size_t hash) : data{key, val}, hash{hash} {}
+    slot() : data{}, hash{} {}
+};
+
+template <typename K, typename V> class hash_map
+{
+    // constant values
+    static constexpr size_t k_group_size_{16};        // size of SIMD register
+    static constexpr uint16_t k_group_mask_{0xFFFF};  // 16 bit all set to 1
+    static constexpr size_t k_default_capacity_{128}; // default starting capacity
+
+    using slot_t = slot<const K, V>;
+    using ctrl_t = uint8_t[k_group_size_];
+
+    slot_t *slots;
+    ctrl_t *ctrls;
+
+    // capacity is linked to groups, because SIMD instructions look at 16
+    // bits at a time, groups are size 16, capacity is 16 * groups
+    size_t capacity_;
+    size_t groups_;
+    size_t mask_;
+    size_t size_{0};
+    size_t used_{0};
+    inline size_t hash_key(const K &key) const;
     void resize();
-public: 
-    hash_map();                          // constructor
-    ~hash_map();                         // destructor
-    void insert(const K& key, const T& val);  // setter
-    void erase(const K& key);
-    const T& at(const K& key);             // getter
-    bool contains(const K& key);
-    T& operator[](const K& key);              // subscript operator
-    size_t size() const { return s; }
-    size_t cap() const { return capacity; }
+    bool at_max_load() const { return used_ > capacity_ - (capacity_ >> 3); }
+
+    // utility functions to get H1 and H2
+    size_t H1(size_t hash) const { return hash >> 7; }
+    size_t H2(size_t hash) const { return hash & 0x7F; }
+
+  public:
+    // constructors
+    hash_map(size_t num_groups = k_default_capacity_);
+    ~hash_map(); // destructor
+
+    V &operator[](const K &key);
+    void insert(const K &key, const V &val);
+    void erase(const K &key);
+    std::pair<const K, V> &at(const K &key) const;
+    bool contains(const K &key) const;
+
+    size_t size() const { return size_; }
+    size_t used() const { return used_; }
+    size_t capacity() const { return capacity_; }
 };
-
-template<typename K, typename T>
-hash_map<K, T>::hash_map() {
-    data = new data_type[capacity];
-}
-
-template<typename K, typename T>
-hash_map<K, T>::~hash_map() {
-    delete[] data;
-}
-
-template<typename K, typename T>
-void hash_map<K, T>::insert(const K& key, const T& val) {
-    size_t h = std::hash<K>{}(key) & mask;
-    for (auto& v : data[h]) {
-        if (v.key == key) {
-            v.data = val;
-            return;
-        }
-    }
-    data[h].emplace_back(key, val);
-    if (++s > capacity / 4 * 3) resize();
-}
-
-template<typename K, typename T>
-void hash_map<K, T>::erase(const K& key) {
-    size_t h = std::hash<K>{}(key) & mask;
-    for (size_t i = 0; i < data[h].size(); i++) {
-        if (data[h][i].key == key) {
-            data[h].erase(data[h].begin() + i);
-            s--;
-            return;
-        }
-    }
-}
-
-template<typename K, typename T>
-const T& hash_map<K, T>::at(const K& key) {
-    size_t h = std::hash<K>{}(key) & mask;
-    for (const auto& v : data[h]) {
-        if (v.key == key) return v.data;
-    }
-    throw std::out_of_range("key not found");
-}
-
-template<typename K, typename T>
-bool hash_map<K, T>::contains(const K& key) {
-    size_t h = std::hash<K>{}(key) & mask;
-    for (const auto& v : data[h]) {
-        if (v.key == key) return true;
-    }
-    return false;
-}
-
-
-template<typename K, typename T>
-T& hash_map<K, T>::operator[](const K& key) {
-    size_t hash = std::hash<K>{}(key);
-    size_t h = hash & mask;
-    for (auto& v : data[h]) {
-        if (v.key == key) return v.data;
-    }
-    T d{};
-    data[h].emplace_back(key, d);
-    if (++s > capacity / 4 * 3) resize();
-    return data[hash & mask].back().data;
-}
-
-template<typename K, typename T>
-void hash_map<K, T>::resize() {
-    size_t n = capacity;
-    capacity *= 2;
-    mask = capacity - 1;
-    data_type* temp = new data_type[capacity];
-    for (size_t i = 0; i < n; i++) {
-        for (const auto& val : data[i]) {
-            size_t h = std::hash<K>{}(val.key) & mask;
-            temp[h].emplace_back(val.key, val.data);
-        }
-    }
-    delete[] data;
-    data = temp;
-}
