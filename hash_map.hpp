@@ -52,6 +52,8 @@ template <typename K, typename V> class hash_map
     static constexpr size_t k_group_size_{16};        // size of SIMD register
     static constexpr uint16_t k_group_mask_{0xFFFF};  // 16 bit all set to 1
     static constexpr size_t k_default_capacity_{128}; // default starting capacity
+    static constexpr int k_h1_shift_{7};              // least significant 7 bits for control byte
+    static constexpr int k_h2_mask_{0x7F};            // most significant x - 7 bits for group index
 
     using slot_t = slot<const K, V>;
     using ctrl_t = uint8_t[k_group_size_];
@@ -71,8 +73,8 @@ template <typename K, typename V> class hash_map
     bool at_max_load() const { return used_ > capacity_ - (capacity_ >> 3); }
 
     // utility functions to get H1 and H2
-    size_t H1(size_t hash) const { return hash >> 7; }
-    size_t H2(size_t hash) const { return hash & 0x7F; }
+    size_t H1(size_t hash) const { return hash >> k_h1_shift_; }
+    size_t H2(size_t hash) const { return hash & k_h2_mask_; }
 
   public:
     // constructors
