@@ -70,11 +70,11 @@ template <typename K, typename V> class hash_map
     size_t used_{0};
     inline size_t hash_key(const K &key) const;
     void resize();
-    bool at_max_load() const { return used_ > capacity_ - (capacity_ >> 3); }
 
-    // utility functions to get H1 and H2
+    // utility functions
     size_t H1(size_t hash) const { return hash >> k_h1_shift_; }
     size_t H2(size_t hash) const { return hash & k_h2_mask_; }
+    bool at_max_load() const { return used_ > capacity_ - (capacity_ >> 3); }
 
   public:
     // constructors
